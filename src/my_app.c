@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 
+//창 크기 설정
 const int screenWidth = 1200;
 const int screenHeight = 720;
 
@@ -64,14 +65,14 @@ void StartSimualtor(){
     if (mouseClicked) {
         if (IsKeyPressed(KEY_SPACE)) timerRunning = !timerRunning; // 스페이스바 눌러 타이머 토글
         UpdateTimers();
-        ClearBackground(LIGHTGRAY);
+        ClearBackground(BLACK);
         char timerText[10]; // 타이머 문자열 버퍼
         PrintTimer(gameTimer, timerText);
-        DrawText(timerText, 1000, 27, 40, BLACK);
+        DrawText(timerText, 1000, 27, 40, GRAY);
     }
     else {
-        ClearBackground(RAYWHITE); // 배경색을 RAYWHITE로 설정
-        DrawText("Click to start BIGBANG", screenWidth / 2 - MeasureText("Click to start BIGBANG", 40) / 2, screenHeight / 2 - 20, 40, BLACK);
+        ClearBackground(BLACK); // 배경색을 RAYWHITE로 설정
+        DrawText("Click to start BIGBANG", screenWidth / 2 - MeasureText("Click to start BIGBANG", 40) / 2, screenHeight / 2 - 20, 40, LIGHTGRAY);
     }
 }
 
