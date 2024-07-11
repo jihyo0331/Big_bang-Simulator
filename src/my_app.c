@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 
-//창 크기 설정
+// 창 크기 설정
 const int screenWidth = 1200;
 const int screenHeight = 720;
 
@@ -12,6 +12,7 @@ bool gameOver = false; // 게임 종료 여부
 bool showText = true; // 텍스트 표시 여부
 bool mouseClicked = false;  // 마우스 클릭 여부
 bool timerRunning = true;  // 타이머 실행 여부
+bool showExplanation = false; // 사각형 표시 여부
 
 float gameTimer = 0.00f; // 타이머 전역변수
 float blinkTimer = 0.0f; // 텍스트 깜빡이는 타이머
@@ -22,6 +23,7 @@ void UpdateTimers();
 void PrintTimer(float seconds, char* buffer);
 void StartSimualtor();
 void StartApp();
+void Explanation();
 
 int main(void)
 {
@@ -59,16 +61,32 @@ void PrintTimer(float seconds, char* buffer) {
     sprintf(buffer, "%02d:%02d:%02d", minutes, secs, hundredths);
 }
 
+void Explanation(){
+    if(showExplanation){
+        if(gameTimer <= 3){
+            DrawRectangle(200, 300, 200, 100, Fade(RAYWHITE, 0.5f));
+            //DrawRectangleLines(200, 300, 200, 100, GRAY);
+            DrawRectangleLinesEx((Rectangle){200, 300, 205, 105}, 5, DARKGRAY);  //테두리 추가
+        }
+        
+    }
+}
+
 // 시뮬레이터 스타트 함수
 void StartSimualtor(){
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) mouseClicked = true;
     if (mouseClicked) {
-        if (IsKeyPressed(KEY_SPACE)) timerRunning = !timerRunning; // 스페이스바 눌러 타이머 토글
+        if (IsKeyPressed(KEY_SPACE)) {
+            timerRunning = !timerRunning; // 스페이스바 눌러 타이머 토글
+            showExplanation = !showExplanation; // 스페이스바 눌러 사각형 표시 여부 토글
+        }
         UpdateTimers();
         ClearBackground(BLACK);
         char timerText[10]; // 타이머 문자열 버퍼
         PrintTimer(gameTimer, timerText);
         DrawText(timerText, 1000, 27, 40, GRAY);
+
+        Explanation(); // 사각형 그리기
     }
     else {
         ClearBackground(BLACK); // 배경색을 RAYWHITE로 설정
