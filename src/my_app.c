@@ -14,7 +14,7 @@ bool showText = true; // 텍스트 표시 여부
 bool mouseClicked = false;  // 마우스 클릭 여부
 bool timerRunning = true;  // 타이머 실행 여부
 bool showExplanation = false; // 사각형 표시 여부
-bool spacePress = false;
+bool spacePress = false;   // Space KEY Praess
 
 float gameTimer = 0.0f; // 타이머 전역변수
 float blinkTimer = 0.0f; // 텍스트 깜빡이는 타이머
@@ -34,48 +34,58 @@ typedef struct {
     Color color;
 } Electron;
 
-Quark quarks[100];
+typedef struct {
+    Vector2 position;
+    Vector2 speed;
+    Color color;
+} Nucleons;
+
+Quark quarks[100];     //쿼크 최대 생성수
 int numQuarks = 100;
-Electron electrons[100];
-int numElectrons = 100;
+Electron electrons[100];     //전자 최대 생성수
+Nucleons nucleons[40];    //양성자와 중성자 최대 생성수
+int numElectrons = 100;    
 float slowdownRate = 0.98f;  // 감소 비율 (천천히 느려지도록)
 float minSpeed = 1.0f;  // 최소 속도 (초기 속도가 더 빠르므로 증가)
 bool quarksInitialized = false; // 쿼크 초기화 여부
-bool electronsInitialized = false;
+bool electronsInitialized = false;   //전자 초기화 여부
+bool nucleonsInitialized = false;    //양성자, 중성자 초기화 여부
 
 // 함수 원형
 void UpdateTimers();
 void PrintTimer(float seconds, char* buffer);
-void StartSimulator();
-void StartApp();
-void Explanation();
+void StartSimulator();     //시뮬레이터 시작 함수
+void StartApp();        //메인 화면 함수
+void Explanation();     //스페이스 누르면 나오는 설명 그리는 함수
 void BigbangAnimation();    //빅뱅
 void InitializeQuarks(); // 쿼크 초기화
-void DrawQuarks();
+void DrawQuarks();     //쿼크 그리는 함수
 void UpdateQuarkSpeeds(); // 쿼크 속도 업데이트
 void InitializeElectrons(); // 전자 초기화
-void DrawElectrons();
+void DrawElectrons();     //전자 그리는 함수
 void UpdateElectronSpeeds(); // 전자 속도 업데이트
 void DecreaseQuarkCount(); // 쿼크 개수 줄이기
+void InitializeNucleons();   //양성자와 중성자 초기화 함수
+void DrawNucleons();    //양성자와 중성자 그리는 함수
 
 int main(void)
 {
     // 윈도우 초기화
     InitWindow(screenWidth, screenHeight, "BIGBANG_Simulator");
-    SetTargetFPS(30); // 목표 FPS를 30으로 설정
+    SetTargetFPS(60); // 목표 FPS를 60으로 설정
 
     // 메인 게임 루프
     while (!WindowShouldClose()) // ESC 키 또는 창 닫기 버튼을 누를 때까지 실행
     {
-        if (gameTimer > 0.2f && IsKeyPressed(KEY_LEFT)) {
-            gameTimer -= 0.2f;
+        if (gameTimer > 0.2f && IsKeyPressed(KEY_LEFT)) {     //왼쪽 화살표를 누르면 타이머 뒤로감기
+            gameTimer -= 0.2f;     //0.2초씩 감소
         }
-        else if (IsKeyPressed(KEY_RIGHT)) {
-            gameTimer += 0.2f;
+        else if (IsKeyPressed(KEY_RIGHT)) {      //오른쪽 화살표 누르면 타이머 앞으로 감기
+            gameTimer += 0.2f;     //0.2초씩 증가
         }
-        BeginDrawing();
+        BeginDrawing();    //메인 루프 내 그리기 시작 함수
         StartApp();
-        EndDrawing();
+        EndDrawing();     //그리기 종료
     }
 
     // 윈도우 종료
@@ -156,7 +166,7 @@ void DrawQuarks() {
             if (quarks[i].position.x <= 0 || quarks[i].position.x >= screenWidth) quarks[i].speed.x *= -1;
             if (quarks[i].position.y <= 0 || quarks[i].position.y >= screenHeight) quarks[i].speed.y *= -1;
             }
-            DrawCircleV(quarks[i].position, 5, quarks[i].color);
+            DrawCircleV(quarks[i].position, 4, quarks[i].color);
         }
     }
 }
@@ -202,7 +212,38 @@ void DrawElectrons() {
             if (electrons[i].position.x <= 0 || electrons[i].position.x >= screenWidth) electrons[i].speed.x *= -1;
             if (electrons[i].position.y <= 0 || electrons[i].position.y >= screenHeight) electrons[i].speed.y *= -1;
             }
-            DrawCircleV(electrons[i].position, 3, electrons[i].color);
+            DrawCircleV(electrons[i].position, 5, electrons[i].color);
+        }
+    }
+}
+
+//양성자, 중성자 초기화 함수
+void InitializeNucleons(){
+
+    if(!spacePress){
+        srand(time(NULL));
+        for(int i = 0 ; i < 40; i++){
+            nucleons[i].position = (Vector2){rand() % screenWidth, rand()%screenHeight};
+            nucleons[i].speed = (Vector2){1.0f,1.0f,};
+            nucleons[i].color = (rand() % 2) == 0 ? (Color){222, 78, 78,255} : (Color){101, 184, 199,255};
+        }
+        nucleonsInitialized = true;
+    }
+}
+
+//양성자, 중성자 그리기 및 업데이트 함수
+void DrawNucleons(){
+    if (gameTimer >= 5.5f && nucleonsInitialized) {
+        for (int i = 0; i < 40; i++) {
+            if(!spacePress){
+            nucleons[i].position.x += nucleons[i].speed.x;
+            nucleons[i].position.y += nucleons[i].speed.y;
+
+            // 화면 경계에 도달하면 반대 방향으로 이동
+            if (nucleons[i].position.x <= 0 || nucleons[i].position.x >= screenWidth) nucleons[i].speed.x *= -1;
+            if (nucleons[i].position.y <= 0 || nucleons[i].position.y >= screenHeight) nucleons[i].speed.y *= -1;
+            }
+            DrawCircleV(nucleons[i].position, 12, nucleons[i].color);
         }
     }
 }
@@ -256,10 +297,12 @@ void StartSimulator() {
         if (timerRunning && gameTimer >= 1.7f) {
             if (!quarksInitialized) InitializeQuarks();
             if (!electronsInitialized) InitializeElectrons();
+            if(!nucleonsInitialized) InitializeNucleons();
         }
         if (timerRunning && quarksInitialized) UpdateQuarkSpeeds();
         if (timerRunning && electronsInitialized) UpdateElectronSpeeds();
         if (gameTimer >= 6.6f && gameTimer <= 7.5f) DecreaseQuarkCount();  // 6.6초부터 7.5초 사이에 쿼크 수 줄이기
+        
 
         ClearBackground(BLACK);
         char timerText[10]; // 타이머 문자열 버퍼
@@ -268,6 +311,7 @@ void StartSimulator() {
         BigbangAnimation();
         DrawQuarks(); // 쿼크 그리기
         DrawElectrons(); // 전자 그리기
+        DrawNucleons();  //양성자, 중성자 그리기
         Explanation(); // 사각형 그리기
     }
     else {
