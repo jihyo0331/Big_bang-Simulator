@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
 
 // 창 크기 설정
 const int screenWidth = 1200;
@@ -13,17 +14,49 @@ bool showText = true; // 텍스트 표시 여부
 bool mouseClicked = false;  // 마우스 클릭 여부
 bool timerRunning = true;  // 타이머 실행 여부
 bool showExplanation = false; // 사각형 표시 여부
+bool spacePress = false;
 
-float gameTimer = 0.00f; // 타이머 전역변수
+float gameTimer = 0.0f; // 타이머 전역변수
 float blinkTimer = 0.0f; // 텍스트 깜빡이는 타이머
 float blinkInterval = 0.5f; // 깜빡임 간격 (초)
+
+typedef struct {
+    Vector2 position;
+    Vector2 speed;
+    Vector2 initialSpeed;
+    Color color;
+} Quark;
+
+typedef struct {
+    Vector2 position;
+    Vector2 speed;
+    Vector2 initialSpeed;
+    Color color;
+} Electron;
+
+Quark quarks[100];
+int numQuarks = 100;
+Electron electrons[100];
+int numElectrons = 100;
+float slowdownRate = 0.98f;  // 감소 비율 (천천히 느려지도록)
+float minSpeed = 1.0f;  // 최소 속도 (초기 속도가 더 빠르므로 증가)
+bool quarksInitialized = false; // 쿼크 초기화 여부
+bool electronsInitialized = false;
 
 // 함수 원형
 void UpdateTimers();
 void PrintTimer(float seconds, char* buffer);
-void StartSimualtor();
+void StartSimulator();
 void StartApp();
 void Explanation();
+void BigbangAnimation();    //빅뱅
+void InitializeQuarks(); // 쿼크 초기화
+void DrawQuarks();
+void UpdateQuarkSpeeds(); // 쿼크 속도 업데이트
+void InitializeElectrons(); // 전자 초기화
+void DrawElectrons();
+void UpdateElectronSpeeds(); // 전자 속도 업데이트
+void DecreaseQuarkCount(); // 쿼크 개수 줄이기
 
 int main(void)
 {
@@ -34,6 +67,12 @@ int main(void)
     // 메인 게임 루프
     while (!WindowShouldClose()) // ESC 키 또는 창 닫기 버튼을 누를 때까지 실행
     {
+        if (gameTimer > 0.2f && IsKeyPressed(KEY_LEFT)) {
+            gameTimer -= 0.2f;
+        }
+        else if (IsKeyPressed(KEY_RIGHT)) {
+            gameTimer += 0.2f;
+        }
         BeginDrawing();
         StartApp();
         EndDrawing();
@@ -61,31 +100,174 @@ void PrintTimer(float seconds, char* buffer) {
     sprintf(buffer, "%02d:%02d:%02d", minutes, secs, hundredths);
 }
 
-void Explanation(){
-    if(showExplanation){
-        if(gameTimer <= 3){
+void Explanation() {
+    if (showExplanation) {
+        if (gameTimer <= 3) {
             DrawRectangle(200, 300, 200, 100, Fade(RAYWHITE, 0.5f));
-            //DrawRectangleLines(200, 300, 200, 100, GRAY);
-            DrawRectangleLinesEx((Rectangle){200, 300, 205, 105}, 5, DARKGRAY);  //테두리 추가
+            DrawRectangleLinesEx((Rectangle){ 200, 300, 205, 105 }, 5, DARKGRAY);  //테두리 추가
+            DrawText("BIG BANG!!!\nThe birth of fundamental\nparticles such as quarks\nand electrons", 212, 315, 15, BLACK);
         }
-        
+        else if(gameTimer > 3 && gameTimer <= 6.6){
+            DrawRectangle(400, 300, 200, 100, Fade(RAYWHITE, 0.5f));
+            DrawRectangleLinesEx((Rectangle){ 400, 300, 205, 105 }, 5, DARKGRAY);  //테두리 추가
+            DrawText("The speed of electrons\nand quarks is gradually\ndecreasing.", 412, 315, 15, BLACK);
+        }
+    }
+}
+
+// 쿼크 초기화 함수
+void InitializeQuarks() {
+    if(!spacePress){
+    srand(time(NULL));
+    for (int i = 0; i < 100; i++) {
+        quarks[i].position = (Vector2){ rand() % screenWidth, rand() % screenHeight };
+        quarks[i].initialSpeed = (Vector2){ (rand() % 2 == 0 ? 1 : -1) * 20, (rand() % 2 == 0 ? 1 : -1) * 20 }; // 초기 빠른 속도
+        quarks[i].speed = quarks[i].initialSpeed;
+        quarks[i].color = (rand() % 2) == 0 ? GREEN : PURPLE;
+    }
+    quarksInitialized = true;
+    }
+}
+
+// 쿼크 속도 업데이트 함수
+void UpdateQuarkSpeeds() {
+    if(!spacePress){
+    if (gameTimer >= 1.7f && quarksInitialized) {
+        for (int i = 0; i < numQuarks; i++) {
+            quarks[i].speed.x *= slowdownRate;
+            quarks[i].speed.y *= slowdownRate;
+
+            if (fabs(quarks[i].speed.x) < minSpeed) quarks[i].speed.x = (quarks[i].speed.x < 0 ? -1 : 1) * minSpeed;
+            if (fabs(quarks[i].speed.y) < minSpeed) quarks[i].speed.y = (quarks[i].speed.y < 0 ? -1 : 1) * minSpeed;
+        }
+    }
+    }
+}
+
+// 쿼크 그리기 및 업데이트 함수
+void DrawQuarks() {
+    if (gameTimer >= 1.7f && quarksInitialized) {
+        for (int i = 0; i < numQuarks; i++) {
+            if(!spacePress){
+            quarks[i].position.x += quarks[i].speed.x;
+            quarks[i].position.y += quarks[i].speed.y;
+
+            // 화면 경계에 도달하면 반대 방향으로 이동
+            if (quarks[i].position.x <= 0 || quarks[i].position.x >= screenWidth) quarks[i].speed.x *= -1;
+            if (quarks[i].position.y <= 0 || quarks[i].position.y >= screenHeight) quarks[i].speed.y *= -1;
+            }
+            DrawCircleV(quarks[i].position, 5, quarks[i].color);
+        }
+    }
+}
+
+// 전자 초기화 함수
+void InitializeElectrons() {
+    if(!spacePress){
+    srand(time(NULL));
+    for (int i = 0; i < 100; i++) {
+        electrons[i].position = (Vector2){ rand() % screenWidth, rand() % screenHeight };
+        electrons[i].initialSpeed = (Vector2){ (rand() % 2 == 0 ? 1 : -1) * 20, (rand() % 2 == 0 ? 1 : -1) * 20 }; // 초기 빠른 속도
+        electrons[i].speed = electrons[i].initialSpeed;
+        electrons[i].color = YELLOW;
+    }
+    electronsInitialized = true;
+    }
+}
+
+// 전자 속도 업데이트 함수
+void UpdateElectronSpeeds() {
+    if(!spacePress){
+    if (gameTimer >= 1.7f && electronsInitialized) {
+        for (int i = 0; i < numElectrons; i++) {
+            electrons[i].speed.x *= slowdownRate;
+            electrons[i].speed.y *= slowdownRate;
+
+            if (fabs(electrons[i].speed.x) < minSpeed) electrons[i].speed.x = (electrons[i].speed.x < 0 ? -1 : 1) * minSpeed;
+            if (fabs(electrons[i].speed.y) < minSpeed) electrons[i].speed.y = (electrons[i].speed.y < 0 ? -1 : 1) * minSpeed;
+        }
+    }
+    }
+}
+
+// 전자 그리기 및 업데이트 함수
+void DrawElectrons() {
+    if (gameTimer >= 1.7f && electronsInitialized) {
+        for (int i = 0; i < numElectrons; i++) {
+            if(!spacePress){
+            electrons[i].position.x += electrons[i].speed.x;
+            electrons[i].position.y += electrons[i].speed.y;
+
+            // 화면 경계에 도달하면 반대 방향으로 이동
+            if (electrons[i].position.x <= 0 || electrons[i].position.x >= screenWidth) electrons[i].speed.x *= -1;
+            if (electrons[i].position.y <= 0 || electrons[i].position.y >= screenHeight) electrons[i].speed.y *= -1;
+            }
+            DrawCircleV(electrons[i].position, 3, electrons[i].color);
+        }
+    }
+}
+
+// 빅뱅 애니메이션 시작
+void BigbangAnimation() {
+    float radius = 10 * powf(gameTimer, 4);
+    float fade = gameTimer >= 1.5 ? 3 : 0;
+    int color = 0;
+    DrawCircle(100, 300, 10 * radius * 10, Fade(RAYWHITE, 2.0f - gameTimer));
+    DrawCircle(100, 300, 10 * radius, Fade(color == 0 ? DARKPURPLE : RAYWHITE, 2.0f - gameTimer));
+    DrawCircleLines(100, 300, 10 * radius, Fade(DARKPURPLE, fade - gameTimer));
+    DrawCircleLines(100, 300, 10 *radius + 1, Fade(DARKPURPLE, fade - gameTimer));
+    DrawCircleLines(100, 300, 10 * radius + 2, Fade(DARKPURPLE, fade - gameTimer));
+    DrawCircleLines(100, 300, 10 * radius + 3, Fade(DARKPURPLE, fade - gameTimer));
+    DrawCircleLines(100, 300, 10 * radius + 4, Fade(DARKPURPLE, fade - gameTimer));
+    DrawCircleLines(100, 300, 10 * radius + 5, Fade(DARKPURPLE, fade - gameTimer));
+    DrawCircleLines(100, 300, 9.5 * radius, Fade(DARKBLUE, fade - gameTimer));
+    DrawCircleLines(100, 300, 8.5 * radius, Fade(PURPLE, fade - gameTimer));
+    DrawCircleLines(100, 300, 7.5 * radius, Fade(DARKBLUE, fade - gameTimer));
+    DrawCircleLines(100, 300, 11.5 * radius, Fade(PURPLE, fade - gameTimer));
+    DrawCircleLines(100, 300, 6.5 * radius, Fade(RAYWHITE, fade - gameTimer));
+    DrawCircleLines(100, 300, 5.5 * radius, Fade(ORANGE, fade - gameTimer));
+    DrawCircleLines(100, 300, 4.5 * radius, Fade(BLUE, fade - gameTimer));
+    DrawCircleLines(100, 300, 3.5 * radius, Fade(DARKBLUE, fade - gameTimer));
+    DrawCircleLines(100, 300, 3.3 * radius, Fade(DARKPURPLE, fade - gameTimer));
+    DrawCircleLines(100, 300, 3 * radius, Fade(RAYWHITE, fade - gameTimer));
+}
+
+// 쿼크 개수 줄이기 함수
+void DecreaseQuarkCount() {
+    int particlesToDeactivate = (int)((gameTimer - 6.6f) / (7.5f - 6.6f) * 100);  // 비활성화할 쿼크 수 계산
+
+    if (numQuarks > particlesToDeactivate) {
+        numQuarks -= particlesToDeactivate;
+    } else {
+        numQuarks = 0;
     }
 }
 
 // 시뮬레이터 스타트 함수
-void StartSimualtor(){
+void StartSimulator() {
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) mouseClicked = true;
     if (mouseClicked) {
         if (IsKeyPressed(KEY_SPACE)) {
             timerRunning = !timerRunning; // 스페이스바 눌러 타이머 토글
             showExplanation = !showExplanation; // 스페이스바 눌러 사각형 표시 여부 토글
+            spacePress = !spacePress;
         }
         UpdateTimers();
+        if (timerRunning && gameTimer >= 1.7f) {
+            if (!quarksInitialized) InitializeQuarks();
+            if (!electronsInitialized) InitializeElectrons();
+        }
+        if (timerRunning && quarksInitialized) UpdateQuarkSpeeds();
+        if (timerRunning && electronsInitialized) UpdateElectronSpeeds();
+        if (gameTimer >= 6.6f && gameTimer <= 7.5f) DecreaseQuarkCount();  // 6.6초부터 7.5초 사이에 쿼크 수 줄이기
+
         ClearBackground(BLACK);
         char timerText[10]; // 타이머 문자열 버퍼
         PrintTimer(gameTimer, timerText);
         DrawText(timerText, 1000, 27, 40, GRAY);
-
+        BigbangAnimation();
+        DrawQuarks(); // 쿼크 그리기
+        DrawElectrons(); // 전자 그리기
         Explanation(); // 사각형 그리기
     }
     else {
@@ -95,7 +277,7 @@ void StartSimualtor(){
 }
 
 // 앱 시작 함수
-void StartApp(){
+void StartApp() {
     if (!enterPress) {
         if (IsKeyPressed(KEY_ENTER)) enterPress = true;
         float deltaTime = GetFrameTime();
@@ -111,6 +293,6 @@ void StartApp(){
         }
     }
     else {
-        StartSimualtor();
+        StartSimulator();
     }
 }
