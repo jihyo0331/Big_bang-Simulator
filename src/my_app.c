@@ -243,7 +243,7 @@ void DrawNucleons(){
             if (nucleons[i].position.x <= 0 || nucleons[i].position.x >= screenWidth) nucleons[i].speed.x *= -1;
             if (nucleons[i].position.y <= 0 || nucleons[i].position.y >= screenHeight) nucleons[i].speed.y *= -1;
             }
-            DrawCircleV(nucleons[i].position, 12, nucleons[i].color);
+            DrawCircleV(nucleons[i].position, 12, Fade(nucleons[i].color,0.2f +(gameTimer - 5.2f)));
         }
     }
 }
